@@ -20,10 +20,8 @@
 
 SELECT 
     customer_id,
-    -- Clean up names - make them uppercase and remove extra spaces
     TRIM(UPPER(first_name)) as first_name,
     TRIM(UPPER(last_name)) as last_name,
-    -- Clean email - make it lowercase
     LOWER(TRIM(email)) as email,
     phone,
     address,
@@ -38,10 +36,10 @@ SELECT
     credit_score,
     registration_date,
     
-    -- Add some useful calculated fields
+    -- useful calculated fields
     YEAR(CURRENT_DATE()) - YEAR(date_of_birth) as age,
     
-    -- Categorize income levels
+    -- income levels
     CASE 
         WHEN annual_income < 30000 THEN 'Low Income'
         WHEN annual_income < 75000 THEN 'Medium Income'
@@ -60,7 +58,6 @@ SELECT
         ELSE 0 
     END as bad_birthdate_flag,
     
-    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

@@ -30,10 +30,10 @@ SELECT
     adjuster_id,
     description,
     
-    -- Add useful calculated fields
+    -- useful calculated fields
     DATEDIFF(claim_date, incident_date) as days_to_report_claim,
     
-    -- How much of the claim was approved?
+    -- claim approval
     CASE 
         WHEN approved_amount >= claim_amount THEN 'Fully Approved'
         WHEN approved_amount > 0 THEN 'Partially Approved'
@@ -41,14 +41,14 @@ SELECT
         ELSE 'Pending'
     END as approval_status,
     
-    -- Categorize claim sizes
+    -- claim sizes
     CASE 
         WHEN claim_amount < 5000 THEN 'Small Claim'
         WHEN claim_amount < 25000 THEN 'Medium Claim'
         ELSE 'Large Claim'
     END as claim_size,
     
-    -- Flag problematic data
+    -- Flaging problematic data
     CASE 
         WHEN claim_date < incident_date THEN 1 
         ELSE 0 
@@ -59,7 +59,6 @@ SELECT
         ELSE 0 
     END as bad_claim_amount_flag,
     
-    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

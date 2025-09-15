@@ -28,10 +28,10 @@ SELECT
     status,
     late_fee,
     
-    -- Add useful calculated fields
+    -- useful calculated fields
     DATEDIFF(payment_date, due_date) as days_late_or_early,
     
-    -- Payment status
+    -- payment status
     CASE 
         WHEN amount_paid >= amount_due AND payment_date <= due_date THEN 'On Time'
         WHEN amount_paid >= amount_due AND payment_date > due_date THEN 'Late but Paid'
@@ -40,13 +40,13 @@ SELECT
         ELSE 'Other'
     END as payment_status,
     
-    -- Was payment late?
+    -- wwas payment late?
     CASE 
         WHEN payment_date > due_date THEN 'Yes' 
         ELSE 'No' 
     END as was_late,
     
-    -- Flag problematic data
+    -- flaging problematic data
     CASE 
         WHEN amount_due <= 0 THEN 1 
         ELSE 0 
@@ -57,7 +57,6 @@ SELECT
         ELSE 0 
     END as missing_dates_flag,
     
-    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

@@ -31,10 +31,10 @@ SELECT
     status,
     agent_id,
     
-    -- Add useful calculated fields
+    -- useful calculated fields
     DATEDIFF(end_date, start_date) as policy_length_days,
     
-    -- Is the policy currently active?
+    -- policy status
     CASE 
         WHEN start_date <= CURRENT_DATE() 
          AND end_date >= CURRENT_DATE() 
@@ -43,14 +43,14 @@ SELECT
         ELSE 'No' 
     END as currently_active,
     
-    -- Categorize coverage amounts
+    -- coverage amounts
     CASE 
         WHEN coverage_amount < 50000 THEN 'Basic Coverage'
         WHEN coverage_amount < 200000 THEN 'Standard Coverage'
         ELSE 'Premium Coverage'
     END as coverage_level,
     
-    -- Flag problematic data
+    -- Flaging problematic data
     CASE 
         WHEN end_date <= start_date THEN 1 
         ELSE 0 
@@ -61,7 +61,6 @@ SELECT
         ELSE 0 
     END as bad_amounts_flag,
     
-    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

@@ -1,5 +1,4 @@
 --models/bronze/bronze_customers.sql
--- Simple Bronze layer: All insurance tables
 {{ config(
     materialized='table',
     schema='01_bronze',
