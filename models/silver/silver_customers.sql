@@ -1,62 +1,66 @@
--- models/silver/silver_claims.sql
+--models/silver/silver_customers.sql
 {{ config(
     materialized='table',
     schema='02_silver',
     post_hook="INSERT INTO insurance_analytics.04_logs.dbt_logs 
                (dataset, time_processed, source_records, target_records, bad_records, model_name, run_id, status, execution_time_seconds, created_at)
                SELECT 
-                   'silver_claims' as dataset,
+                   'silver_customers' as dataset,
                    current_timestamp() as time_processed,
-                   (SELECT COUNT(*) FROM {{ ref('bronze_claims') }}) as source_records,
+                   (SELECT COUNT(*) FROM {{ ref('bronze_customers') }}) as source_records,
                    (SELECT COUNT(*) FROM {{ this }}) as target_records,
-                   (SELECT COUNT(*) FROM {{ this }} WHERE is_bad_record = 1) as bad_records,
-                   'silver_claims' as model_name,
+                   (SELECT COUNT(*) FROM {{ ref('bronze_customers') }} WHERE customer_id IS NULL) as bad_records,
+                   'silver_customers' as model_name,
                    '{{ invocation_id }}' as run_id,
                    'success' as status,
                    0.0 as execution_time_seconds,
                    current_timestamp() as created_at"
 ) }}
 
+
 SELECT 
-    claim_id,
-    policy_id,
-    claim_number,
-    claim_date,
-    incident_date,
-    claim_type,
-    claim_amount,
-    approved_amount,
-    status,
-    adjuster_id,
-    description,
+    customer_id,
+    TRIM(UPPER(first_name)) as first_name,
+    TRIM(UPPER(last_name)) as last_name,
+    LOWER(TRIM(email)) as email,
+    phone,
+    address,
+    city,
+    state,
+    zip_code,
+    date_of_birth,
+    gender,
+    marital_status,
+    employment_status,
+    annual_income,
+    credit_score,
+    registration_date,
     
-    DATEDIFF(claim_date, incident_date) as days_to_report_claim,
+    -- useful calculated fields
+    YEAR(CURRENT_DATE()) - YEAR(date_of_birth) as age,
+    
+    -- income levels
+    CASE 
+        WHEN annual_income < 30000 THEN 'Low Income'
+        WHEN annual_income < 75000 THEN 'Medium Income'
+        WHEN annual_income >= 75000 THEN 'High Income'
+        ELSE 'Unknown'
+    END as income_level,
+    
+    -- Flag bad data
+    CASE 
+        WHEN email IS NULL OR email = '' THEN 1 
+        ELSE 0 
+    END as missing_email_flag,
     
     CASE 
-        WHEN approved_amount >= claim_amount THEN 'Fully Approved'
-        WHEN approved_amount > 0 THEN 'Partially Approved'
-        WHEN approved_amount = 0 THEN 'Denied'
-        ELSE 'Pending'
-    END as approval_status,
-    
-    CASE 
-        WHEN claim_amount < 5000 THEN 'Small Claim'
-        WHEN claim_amount < 25000 THEN 'Medium Claim'
-        ELSE 'Large Claim'
-    END as claim_size,
-    
-    -- bad record
-    CASE 
-        WHEN claim_date < incident_date THEN 1
-        WHEN claim_amount <= 0 THEN 1
-        WHEN approved_amount > claim_amount * 1.5 THEN 1
-        WHEN DATEDIFF(claim_date, incident_date) > 365 THEN 1
-        ELSE 0
-    END as is_bad_record,
+        WHEN date_of_birth > CURRENT_DATE() THEN 1 
+        ELSE 0 
+    END as bad_birthdate_flag,
     
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time
     
-FROM {{ ref('bronze_claims') }}
-WHERE claim_id IS NOT NULL
+FROM {{ ref('bronze_customers') }}
+WHERE customer_id IS NOT NULL

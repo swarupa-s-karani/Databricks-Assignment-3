@@ -54,4 +54,3 @@ LEFT JOIN {{ ref('silver_claims') }} cl ON p.policy_id = cl.policy_id
 GROUP BY c.customer_id, c.first_name, c.last_name, c.age, c.state
 HAVING SUM(p.premium_amount) > 0
 ORDER BY customer_profit DESC
-LIMIT 100
