@@ -1,4 +1,4 @@
--- models/silver/silver_claims.sql (Consolidated version)
+-- models/silver/silver_claims.sql
 {{ config(
     materialized='table',
     schema='02_silver',
@@ -29,8 +29,7 @@ SELECT
     status,
     adjuster_id,
     description,
-    
-    -- Business calculations
+
     DATEDIFF(claim_date, incident_date) as days_to_report_claim,
     
     CASE 
@@ -46,7 +45,7 @@ SELECT
         ELSE 'Large Claim'
     END as claim_size,
     
-    -- CONSOLIDATED BAD RECORD FLAG
+    -- bad records
     CASE 
         WHEN claim_date < incident_date THEN 1
         WHEN claim_amount <= 0 THEN 1
@@ -55,13 +54,6 @@ SELECT
         ELSE 0
     END as is_bad_record,
     
-    -- DETAILED BREAKDOWN (Optional)
-    CASE WHEN claim_date < incident_date THEN 'IMPOSSIBLE_DATES|' ELSE '' END ||
-    CASE WHEN claim_amount <= 0 THEN 'INVALID_AMOUNT|' ELSE '' END ||
-    CASE WHEN approved_amount > claim_amount * 1.5 THEN 'EXCESSIVE_APPROVAL|' ELSE '' END ||
-    CASE WHEN DATEDIFF(claim_date, incident_date) > 365 THEN 'VERY_LATE_REPORTING|' ELSE '' END as quality_issues,
-    
-    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

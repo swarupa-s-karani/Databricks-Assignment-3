@@ -27,10 +27,10 @@ SELECT
     COUNT(c.claim_id) as claims_filed,
     COALESCE(SUM(c.approved_amount), 0) as claims_paid,
     
-    -- Fixed monthly profit
+    -- monthly profit
     SUM(p.premium_amount) - COALESCE(SUM(c.approved_amount), 0) as monthly_profit,
     
-    -- Fixed performance indicator  
+    -- performance indicator  
     CASE 
         WHEN SUM(p.premium_amount) > COALESCE(SUM(c.approved_amount), 0) THEN 'Profitable'
         ELSE 'Loss Making'

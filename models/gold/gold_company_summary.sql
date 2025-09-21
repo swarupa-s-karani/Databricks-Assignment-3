@@ -24,13 +24,13 @@ SELECT
     COUNT(c.claim_id) as total_claims,
     COALESCE(SUM(c.approved_amount), 0) as total_payouts,
     
-    -- Fixed profit calculation
+    -- profit calculation
     SUM(p.premium_amount) - COALESCE(SUM(c.approved_amount), 0) as net_profit,
     
-    -- Fixed loss ratio with null handling
+    -- loss ratio with null handling
     ROUND((COALESCE(SUM(c.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0)) * 100, 1) as loss_ratio_percent,
     
-    -- Fixed company health
+    -- company health
     CASE 
         WHEN (COALESCE(SUM(c.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0)) < 0.8 THEN 'Healthy'
         ELSE 'Needs Review'

@@ -17,19 +17,16 @@
                    current_timestamp() as created_at"
 ) }}
 
--- Risk Assessment by Policy Type and Demographics
 SELECT 
     p.policy_type,
     c.age,
     c.state,
     c.income_level,
     
-    -- Policy metrics
     COUNT(p.policy_id) as total_policies,
     AVG(p.premium_amount) as avg_premium,
     AVG(p.coverage_amount) as avg_coverage,
     
-    -- Claim metrics
     COUNT(cl.claim_id) as total_claims,
     COALESCE(SUM(cl.approved_amount), 0) as total_payouts,
     COALESCE(AVG(cl.approved_amount), 0) as avg_claim_payout,
@@ -46,8 +43,7 @@ SELECT
         THEN ROUND((COALESCE(SUM(cl.approved_amount), 0) / SUM(p.premium_amount)) * 100, 2)
         ELSE 0 
     END as loss_ratio_percent,
-    
-    -- Risk categories
+
     CASE 
         WHEN COALESCE(SUM(cl.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0) > 0.8 THEN 'High Risk'
         WHEN COALESCE(SUM(cl.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0) > 0.5 THEN 'Medium Risk'
@@ -69,5 +65,5 @@ LEFT JOIN {{ ref('silver_policies') }} p ON c.customer_id = p.customer_id
 LEFT JOIN {{ ref('silver_claims') }} cl ON p.policy_id = cl.policy_id
 WHERE p.policy_id IS NOT NULL
 GROUP BY p.policy_type, c.age, c.state, c.income_level
-HAVING COUNT(p.policy_id) >= 3  -- Only segments with sufficient data
+HAVING COUNT(p.policy_id) >= 3 
 ORDER BY loss_ratio_percent DESC, claims_frequency_percent DESC
