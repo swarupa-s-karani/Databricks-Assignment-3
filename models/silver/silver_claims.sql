@@ -1,4 +1,4 @@
---models/silver/silver_claims.sql
+-- models/silver/silver_claims.sql (Consolidated version)
 {{ config(
     materialized='table',
     schema='02_silver',
@@ -9,7 +9,7 @@
                    current_timestamp() as time_processed,
                    (SELECT COUNT(*) FROM {{ ref('bronze_claims') }}) as source_records,
                    (SELECT COUNT(*) FROM {{ this }}) as target_records,
-                   (SELECT COUNT(*) FROM {{ ref('bronze_claims') }} WHERE claim_id IS NULL) as bad_records,
+                   (SELECT COUNT(*) FROM {{ this }} WHERE is_bad_record = 1) as bad_records,
                    'silver_claims' as model_name,
                    '{{ invocation_id }}' as run_id,
                    'success' as status,
@@ -30,10 +30,9 @@ SELECT
     adjuster_id,
     description,
     
-    -- useful calculated fields
+    -- Business calculations
     DATEDIFF(claim_date, incident_date) as days_to_report_claim,
     
-    -- claim approval
     CASE 
         WHEN approved_amount >= claim_amount THEN 'Fully Approved'
         WHEN approved_amount > 0 THEN 'Partially Approved'
@@ -41,24 +40,28 @@ SELECT
         ELSE 'Pending'
     END as approval_status,
     
-    -- claim sizes
     CASE 
         WHEN claim_amount < 5000 THEN 'Small Claim'
         WHEN claim_amount < 25000 THEN 'Medium Claim'
         ELSE 'Large Claim'
     END as claim_size,
     
-    -- Flaging problematic data
+    -- CONSOLIDATED BAD RECORD FLAG
     CASE 
-        WHEN claim_date < incident_date THEN 1 
-        ELSE 0 
-    END as impossible_dates_flag,
+        WHEN claim_date < incident_date THEN 1
+        WHEN claim_amount <= 0 THEN 1
+        WHEN approved_amount > claim_amount * 1.5 THEN 1
+        WHEN DATEDIFF(claim_date, incident_date) > 365 THEN 1
+        ELSE 0
+    END as is_bad_record,
     
-    CASE 
-        WHEN claim_amount <= 0 THEN 1 
-        ELSE 0 
-    END as bad_claim_amount_flag,
+    -- DETAILED BREAKDOWN (Optional)
+    CASE WHEN claim_date < incident_date THEN 'IMPOSSIBLE_DATES|' ELSE '' END ||
+    CASE WHEN claim_amount <= 0 THEN 'INVALID_AMOUNT|' ELSE '' END ||
+    CASE WHEN approved_amount > claim_amount * 1.5 THEN 'EXCESSIVE_APPROVAL|' ELSE '' END ||
+    CASE WHEN DATEDIFF(claim_date, incident_date) > 365 THEN 'VERY_LATE_REPORTING|' ELSE '' END as quality_issues,
     
+    -- Keep original fields
     bronze_load_time,
     source_system,
     current_timestamp() as silver_load_time

@@ -17,25 +17,22 @@
                    current_timestamp() as created_at"
 ) }}
 
-
 SELECT 
     YEAR(p.start_date) as year,
     MONTH(p.start_date) as month,
     
-    -- revenue metrics
     COUNT(p.policy_id) as policies_sold,
     SUM(p.premium_amount) as monthly_revenue,
     
-    -- claims metrics  
     COUNT(c.claim_id) as claims_filed,
-    SUM(c.approved_amount) as claims_paid,
+    COALESCE(SUM(c.approved_amount), 0) as claims_paid,
     
-    -- monthly profit
-    SUM(p.premium_amount) - SUM(c.approved_amount) as monthly_profit,
+    -- Fixed monthly profit
+    SUM(p.premium_amount) - COALESCE(SUM(c.approved_amount), 0) as monthly_profit,
     
-    -- performance indicator
+    -- Fixed performance indicator  
     CASE 
-        WHEN SUM(p.premium_amount) > SUM(c.approved_amount) THEN 'Profitable'
+        WHEN SUM(p.premium_amount) > COALESCE(SUM(c.approved_amount), 0) THEN 'Profitable'
         ELSE 'Loss Making'
     END as month_performance
     

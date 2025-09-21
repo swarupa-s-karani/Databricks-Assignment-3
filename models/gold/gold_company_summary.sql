@@ -17,23 +17,22 @@
                    current_timestamp() as created_at"
 ) }}
 
--- company health
 SELECT 
     COUNT(p.policy_id) as total_policies,
     COUNT(DISTINCT p.customer_id) as total_customers,
     SUM(p.premium_amount) as total_revenue,
     COUNT(c.claim_id) as total_claims,
-    SUM(c.approved_amount) as total_payouts,
+    COALESCE(SUM(c.approved_amount), 0) as total_payouts,
     
-    -- profit
-    SUM(p.premium_amount) - SUM(c.approved_amount) as net_profit,
+    -- Fixed profit calculation
+    SUM(p.premium_amount) - COALESCE(SUM(c.approved_amount), 0) as net_profit,
     
-    -- loss ratio
-    ROUND((SUM(c.approved_amount) / SUM(p.premium_amount)) * 100, 1) as loss_ratio_percent,
+    -- Fixed loss ratio with null handling
+    ROUND((COALESCE(SUM(c.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0)) * 100, 1) as loss_ratio_percent,
     
-    -- company health
+    -- Fixed company health
     CASE 
-        WHEN (SUM(c.approved_amount) / SUM(p.premium_amount)) < 0.8 THEN 'Healthy'
+        WHEN (COALESCE(SUM(c.approved_amount), 0) / NULLIF(SUM(p.premium_amount), 0)) < 0.8 THEN 'Healthy'
         ELSE 'Needs Review'
     END as company_status,
     
